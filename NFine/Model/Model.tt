@@ -1,0 +1,53 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ assembly name="System.Data" #>
+<#@ assembly name="System.Data.OracleClient" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Xml" #>
+<#@ import namespace="System.Data" #>
+<#@ import namespace="System.Data.OracleClient" #>
+<#@ import namespace="System.Collections.Generic"#>
+<#@ include file="$(ProjectDir)ModelAuto.ttinclude"#>
+<#@ include file="$(ProjectDir)DbHelper.ttinclude"#>
+<# var manager2 = new Manager(Host, GenerationEnvironment, true) { OutputPath = Path.GetDirectoryName(Host.TemplateFile)}; #>
+<# 
+DbHelper DbHelp = new DbHelper();
+List<DbTable> list=DbHelp.GetDbTables(config.ConnectionString, config.DbDatabase);
+#>
+
+<# 
+    foreach (var item in list)
+    {
+        string tableName=item.TableName;
+       // List<DbColumn> table= DbHelp.GetDbColumns(tableName);
+ #>
+
+ <# 
+        manager2.StartBlock(tableName+".cs");
+ #>
+using System;
+using System.Data;
+using System.Data.OracleClient;
+namespace Model
+{
+    /// <summary>
+    /// 数据表实体类：<#= tableName #> 
+    /// </summary>
+    public class <#= tableName #>
+    {
+		<# foreach(DbColumn column in DbHelper.GetDbColumns(config.ConnectionString, config.DbDatabase, item.TableName)){#>
+					/// <summary>
+					///<#=column.Remark#>
+					/// </summary>	
+					  public <#= column.CSharpType#><# if(column.CommonType.IsValueType && column.IsNullable){#>?<#}#> <#=column.ColumnName#> { get; set; }
+				<#}#> 
+    }
+}
+
+<# manager2.EndBlock(); #>
+
+<#}#>     
+   
+<# manager2.Process(true); #>
+

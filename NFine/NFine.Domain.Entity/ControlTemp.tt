@@ -1,0 +1,227 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml.Linq.dll" #>
+<#@ assembly name="System.Xml.dll" #>
+<#@ assembly name="System.Data.dll" #>
+<#@ assembly name="System.Data.DataSetExtensions.dll" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Xml.Linq" #>
+<#@ import namespace="System.Data" #>
+<#@ import namespace="System.Data.SqlClient" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#@ include file="$(ProjectDir)DbHelper.ttinclude"  #>
+<#@ include file="$(ProjectDir)ModelAuto.ttinclude"#>
+<#@ include file="$(ProjectDir)XmlNode.ttinclude"#>
+<#@ include file="$(ProjectDir)config.ttinclude"#>
+
+<# 
+   XmlNode xmlNode=new XmlNode();//XmlNode实例
+   var ControlManage=new Manager(Host, GenerationEnvironment, true);//生成模板实例
+   var ControlPath=config.FullPath+"\\"+config.ControlName;
+   List<DbTable> dataList=new List<DbTable>();
+   if(string.IsNullOrWhiteSpace(config.TableName))
+   {
+       dataList=DbHelper.GetDbTables(config.ConnectionString, config.DbDatabase);
+   }
+   else
+   {
+     dataList=DbHelper.GetDbTables(config.ConnectionString, config.DbDatabase,config.TableName);
+   }
+#>
+
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+namespace NFine.Domain.Entity.SystemManage
+{ 
+
+//创建保存控制器文件夹
+<# xmlNode.CreateFile(config.ControlName,config.FullPath);#>
+
+<# foreach(DbTable item in dataList){#>
+     <# var TableName=item.TableName.Substring(item.TableName.LastIndexOf("_")+1);#>
+     <#ControlManage.StartBlock(ControlPath+"\\"+TableName+"Controller.cs");#>
+      using System;
+      using System.Collections.Generic;
+      using System.Linq;
+      using System.Threading.Tasks;
+      using GreenUnity.Common.Identity;
+      using GreenUnity.EntityFramework.Entities;
+      using GreenUnity.Repository;
+      using GreenUnity.WebApi.Areas.<#=TableName#>.Models.Vehicles.Input;
+      using GreenUnity.WebApi.Areas.<#=TableName#>.Models.Vehicles.Output;
+      using LinqKit;
+      using Microsoft.AspNetCore.Authorization;
+      using Microsoft.AspNetCore.Http;
+      using Microsoft.AspNetCore.Mvc;
+      using Microsoft.Extensions.Options;
+      using Newtonsoft.Json;
+      
+      namespace GreenUnity.WebApi.Areas.<#=TableName#>.Controllers
+      {
+          /// <summary>
+          /// 车辆管理
+          /// </summary>
+          [Route("Auth/[controller]")]
+          [ApiController, Authorize]
+          public class <#=TableName#>Controller : BaseApiController
+          {
+              /// <summary>
+              /// 构造函数
+              /// </summary>
+              /// <param name="unit"></param>
+              /// <param name="settings"></param>
+              public <#=TableName#>Controller(UnitOfWork unit, IOptions<AppSettings> settings) : base(unit, settings)
+              {
+      
+              }
+      
+              /// <summary>
+              /// 新增
+              /// </summary>
+              /// <param name="input"></param>
+              /// <returns>添加的数据</returns>
+              [HttpPost]
+              [Route("[action]")]
+              public async Task<AjaxResult> Add([FromBody]<#=TableName#>Input input)
+              {
+                  if (!ModelState.IsValid)
+                      return new AjaxResult(StatusCodes.Status400BadRequest, ModelState);
+      
+                  <#=item.TableName#> entity = new <#=item.TableName#> ();
+                  JsonConvert.PopulateObject(JsonConvert.SerializeObject(input), entity);
+                  entity.CreationTime = DateTime.Now;
+                  entity.CreationUser = User.Identity.Name;
+      
+                  await _unit.GeneralRepository.InsertAsync(entity);
+                  await _unit.SaveChangesAsync();
+                  return new AjaxResult(entity);
+              }
+      
+              /// <summary>
+              /// 修改单个数据
+              /// </summary>
+              /// <param name="id">id</param>
+              /// <param name="input">数据（需包含id）</param>
+              /// <returns>修改后的数据</returns>
+              [HttpPut]
+              [Route("[action]/{id}")]
+              public async Task<AjaxResult> Edit([FromRoute]Guid id, [FromBody]<#=TableName#>EditInput input)
+              {
+                  if (!ModelState.IsValid)
+                      return new AjaxResult(StatusCodes.Status400BadRequest, ModelState, "数据未通过验证");
+                  if (id != input.Id)
+                      return new AjaxResult(StatusCodes.Status400BadRequest, ModelState, "数据唯一标记不匹配");
+      
+                  var entity = _unit.GeneralRepository.Get<<#=item.TableName#>>(id);
+                  JsonConvert.PopulateObject(JsonConvert.SerializeObject(input), entity);
+                  entity.ModificationTime = DateTime.Now;
+                  entity.ModificationUser = User.Identity.Name;
+      
+                  _unit.GeneralRepository.Modify(entity);
+                  await _unit.SaveChangesAsync();
+      
+                  return new AjaxResult(entity);
+              }
+      
+              /// <summary>
+              /// 删除一条数据(真删除)
+              /// </summary>
+              /// <param name="id">数据唯一标志</param>
+              /// <returns>删除的数据</returns>
+              [HttpDelete]
+              [Route("[action]/{id}")]
+              public async Task<AjaxResult> Remove([FromRoute]Guid id)
+              {
+                  if (!ModelState.IsValid)
+                      return new AjaxResult(StatusCodes.Status400BadRequest, ModelState);
+      
+                  var entity = await _unit.GeneralRepository.GetAsync<<#=item.TableName#>>(id);
+      
+                  if (entity == null)
+                      return new AjaxResult(StatusCodes.Status404NotFound, "数据未找到");
+      
+                  _unit.GeneralRepository.Remove(entity);
+                  await _unit.SaveChangesAsync();
+      
+                  return new AjaxResult(entity);
+              }
+      
+              /// <summary>
+              /// 删除一条数据(假删除)
+              /// </summary>
+              /// <param name="id">数据唯一标志</param>
+              /// <returns>删除的数据</returns>
+              [HttpDelete]
+              [Route("[action]/{id}")]
+              public async Task<AjaxResult> Delete([FromRoute]Guid id)
+              {
+                  if (!ModelState.IsValid)
+                      return new AjaxResult(StatusCodes.Status400BadRequest, ModelState);
+      
+                  var entity = await _unit.GeneralRepository.GetAsync<<#=item.TableName#>>(id);
+      
+                  if (entity == null)
+                      return new AjaxResult(StatusCodes.Status404NotFound, "数据未找到");
+      
+                  entity.IsDeleted = true;
+                  entity.ModificationUser = User.Identity.Name;
+                  entity.ModificationTime = DateTime.Now;
+      
+                  _unit.GeneralRepository.Modify(entity);
+                  await _unit.SaveChangesAsync();
+      
+                  return new AjaxResult(entity);
+              }
+      
+              /// <summary>
+              /// 根据id查询单个数据
+              /// </summary>
+              /// <param name="id">数据唯一标志</param>
+              /// <returns>查询到的数据</returns>
+              [HttpGet]
+              [Route("[action]/{id}")]
+              public async Task<AjaxResult> Get([FromRoute]Guid id)
+              {
+                  if (!ModelState.IsValid)
+                      return new AjaxResult(StatusCodes.Status400BadRequest, ModelState); ;
+                  //数据查询
+                  var entity = await _unit.GeneralRepository.GetAsync<<#=item.TableName#>>(id);
+                  //是否为空
+                  if (entity == null)
+                      return new AjaxResult(StatusCodes.Status404NotFound);
+                  <#=TableName#>Output data = new <#=TableName#>Output();
+                  JsonConvert.PopulateObject(JsonConvert.SerializeObject(entity), data);
+                  return new AjaxResult(data);
+              }
+      
+              /// <summary>
+              /// 分页查询
+              /// </summary>
+              /// <param name="input"></param>
+              /// <returns></returns>
+              [HttpGet, Route("[action]")]
+              public async Task<AjaxResult> GetList([FromQuery]<#=TableName#>PagingInput input)
+              {
+                  var filter = PredicateBuilder.New<<#=item.TableName#>>(true);
+                  if (!string.IsNullOrWhiteSpace(input.Keyword))
+                      filter = filter;
+                  var (query, total) = await _unit.GeneralRepository.GetListAsync<<#=item.TableName#>>(input.PageIndex, input.PageSize, filter, input.GetSort());
+                  var data = (from item in query
+                              select new <#=TableName#>Output()
+                              {
+                              }).ToList();
+                  return new AjaxResult(total, data);
+              }
+          }
+      }
+	  <# ControlManage.EndBlock(); #>
+<#}#>
+<# ControlManage.Process(true); #>
+}

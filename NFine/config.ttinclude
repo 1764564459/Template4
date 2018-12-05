@@ -1,0 +1,22 @@
+﻿<#+
+	public class config
+	{
+		//链接字符串
+        public static readonly string ConnectionString = "Data Source=192.168.1.21;Initial Catalog=QG_General;User ID=sa;Password=GreenUnity2018;";
+		//数据库名称
+        public static readonly string DbDatabase = "QG_General";
+		//表名称
+        public static readonly string TableName = "";//QG_Auth_User
+		//Xml地址
+		public static string XmlPath = @"D:\项目\通用\GreenUnity.WebApi\bin\GreenUnity.EntityFramework.xml";
+		//保存模板地址（默认项目根目录下，因为模板运行机制基于VS生成模板地址为：C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\IDE）
+		public static  string FilePath =AppDomain.CurrentDomain.BaseDirectory;
+		//保存的文件夹名称
+		public static readonly string FactoryName = "Repository";
+		//保存类文件文件夹名称
+		public static readonly string ModelName = "Models";
+		//保存控制器文件夹名称
+		public static  string ControlName = "Controller";
+		public static readonly string FullPath = FilePath+"\\"+FactoryName;
+	}
+#>

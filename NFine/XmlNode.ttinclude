@@ -1,0 +1,52 @@
+﻿
+<#+
+	public  class XmlNode
+    {
+        public   XDocument XmlDoc=null;
+        public XmlNode()
+        {
+
+        }
+        public XmlNode(string FilePath)
+        {
+            XmlDoc = XDocument.Load(FilePath);
+        }
+        public    void Load(string FilePath)
+        {
+            XmlDoc = XDocument.Load(FilePath);
+        }
+        /// <summary>
+        /// 查找节点
+        /// </summary>
+        /// <param name="NodeName">节点名称</param>
+        /// <param name="Attribute">属性名称</param>
+        /// <param name="Condition">条件</param>
+        /// <returns></returns>
+        public  XElement Find(string NodeName,string Attribute,string Condition)
+        {
+            var XmlNode = XmlDoc.Descendants(NodeName).Where(o=>o.Attribute(Attribute).Value.EndsWith(Condition)).FirstOrDefault();
+            return XmlNode;
+        }
+		 /// <summary>
+        /// 创建文件夹
+        /// </summary>
+        /// <param name="FileName">文件夹名称</param>
+        /// <returns></returns>
+	   public void CreateFile(string FileName,string FilePath=null)
+        {
+			string Path=string.Empty;
+			if(string.IsNullOrWhiteSpace(FilePath))
+				Path=config.FullPath+"\\"+FileName;
+            else
+				Path = FilePath+"\\"+ FileName;
+            if (Directory.Exists(Path))
+            {
+				//Directory.Delete(Path,true);
+				return;
+			}
+
+            Directory.CreateDirectory(Path);
+        }
+
+    }
+#>
